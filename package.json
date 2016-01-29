@@ -1,0 +1,20 @@
+{
+  "name": "verifier_proxy",
+  "description": "Proxy server for verifier standard compliance layer.",
+  "version": "0.0.1",
+  "meanjs-version": "0.0.1",
+  "private": false,
+  "author": "Biometix",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meanjs/mean.git"
+  },
+  "engines": {
+    "node": ">=0.10.28",
+    "npm": ">=1.4.28"
+  },
+  "dependencies": {
+    "http-proxy": "^1.13.0"  
+  }
+}
