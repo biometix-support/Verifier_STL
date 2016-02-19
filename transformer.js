@@ -3,7 +3,7 @@
 var http = require('http'),
   connect = require('connect'),
   httpProxy = require('http-proxy'),
-  transformerProxy = require('../');
+  transformerProxy = require('transformer-proxy');
 
 //
 // The transforming function.
@@ -11,7 +11,6 @@ var http = require('http'),
 
 var transformerFunction = function (data, req, res) {
   var str = data.toString('binary');
-
   var transformedStr = str.replace("live.jpg", "long.jpg");
   console.log('[server response] ' + str);
 
@@ -27,7 +26,7 @@ var transformerFunction = function (data, req, res) {
 
     return buffer;
   } else {
-    return data;// + "\n // an additional line at the end of every file";
+    return data;
   }
 };
 
