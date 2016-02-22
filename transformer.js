@@ -10,21 +10,23 @@ var http = require('http'),
 //
 
 var transformerFunction = function (data, req, res) {
-  var str = data.toString('binary');
-  var transformedStr = str.replace("live.jpg", "long.jpg");
-  console.log('[server response] ' + str);
+  var str = data.toString('ascii');
+  //var transformedStr = str.replace("abc", "abcdefghij");
+  console.log('[raw response in string] ' + str);
 
-  if (transformedStr.indexOf("long.jpg") > -1) {
-    //var bytes = [];
-    //
-    //for (var i = 0; i < transformedStr.length; ++i) {
-    //  //if (i > 6) {
-    //    bytes.push(str.charCodeAt(i));
-    //  //}
-    //}
-    var buffer = new Buffer(transformedStr, "binary");
+  if (str.indexOf('abc') > -1) {
+    //data.write('abc  ', str.indexOf('abc'), 5, 'binary');
 
-    return buffer;
+    //var buffer = new Buffer('defg]\"', "binary");
+    //console.log('[transformed response] ' + buffer.toString('binary'));
+    //var tempo = Buffer.concat([data, buffer]);
+    var tempStr = str.replace("c\"]", "c  ") + "def\"]";
+    var tempo = new Buffer(tempStr, "binary");
+    tempo[1] = 3;
+    tempo[2] = 5;
+    tempo[3] = 255;
+
+    return tempo;
   } else {
     return data;
   }
@@ -35,8 +37,8 @@ var transformerFunction = function (data, req, res) {
 // A proxy as a basic connect app.
 //
 
-var proxiedPort = 3000;
-var proxyPort = 8031;
+var proxiedPort = 4000;
+var proxyPort = 8085;
 
 var app = connect();
 var proxy = httpProxy.createProxyServer({target: 'ws://localhost:' + proxiedPort});
