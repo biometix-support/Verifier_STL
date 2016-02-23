@@ -11,20 +11,20 @@ var http = require('http'),
 
 var transformerFunction = function (data, req, res) {
   var str = data.toString('ascii');
-  //var transformedStr = str.replace("abc", "abcdefghij");
-  console.log('[raw response in string] ' + str);
+  //console.log('[raw response in string] ' + str);
 
-  if (str.indexOf('abc') > -1) {
-    //data.write('abc  ', str.indexOf('abc'), 5, 'binary');
+  if (str.indexOf('connected') > -1) {
+    var tempStr = str.replace("\"]", "  ") + "defiiiiiiiiiiiiiiiiiiii\"]";
 
-    //var buffer = new Buffer('defg]\"', "binary");
-    //console.log('[transformed response] ' + buffer.toString('binary'));
-    //var tempo = Buffer.concat([data, buffer]);
-    var tempStr = str.replace("c\"]", "c  ") + "def\"]";
+
     var tempo = new Buffer(tempStr, "binary");
-    tempo[1] = 3;
-    tempo[2] = 5;
-    tempo[3] = 255;
+    var upperThreshold = tempo.length -1;
+    var numberArray = upperThreshold.toString().split('');
+
+    for(var i = 0; i < numberArray.length; i++) {
+      tempo[i + 1] = numberArray[i];
+    }
+    tempo[numberArray.length + 1] = 255;
 
     return tempo;
   } else {
@@ -37,8 +37,8 @@ var transformerFunction = function (data, req, res) {
 // A proxy as a basic connect app.
 //
 
-var proxiedPort = 4000;
-var proxyPort = 8085;
+var proxiedPort = 3000;
+var proxyPort = 8088;
 
 var app = connect();
 var proxy = httpProxy.createProxyServer({target: 'ws://localhost:' + proxiedPort});
