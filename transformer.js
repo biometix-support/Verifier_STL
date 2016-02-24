@@ -3,21 +3,52 @@
 var http = require('http'),
   connect = require('connect'),
   httpProxy = require('http-proxy'),
-  transformerProxy = require('transformer-proxy');
+  transformerProxy = require('transformer-proxy'),
+  js2xmlparser = require("js2xmlparser");
 
 //
 // The transforming function.
 //
 
 var transformerFunction = function (data, req, res) {
-  var str = data.toString('ascii');
-  //console.log('[raw response in string] ' + str);
+  var rawMessage = data.toString('ascii');
 
-  if (str.indexOf('connected') > -1) {
-    var tempStr = str.replace("\"]", "  ") + "defiiiiiiiiiiiiiiiiiiii\"]";
+  //console.log('[raw response in string] ' + rawMessage);
 
+  if (rawMessage.indexOf('OnStatusChanged') > -1) {
 
-    var tempo = new Buffer(tempStr, "binary");
+    var breakPoint = rawMessage.indexOf("42[");
+    var header = rawMessage.substring(0, breakPoint);
+    var result = {
+        "status": "",
+        "message": "",
+        "sensorData": ""
+    };
+
+    var rawResult = JSON.parse(rawMessage.substring(6, rawMessage.length));
+
+    result.status = 'success';
+    result.message = rawResult[1];
+
+    var options = {
+        prettyPrinting: {
+          enabled: true,
+          indentString: ''
+        }
+    };
+    var xmlResult = js2xmlparser("result", result, options);
+    xmlResult = xmlResult.replace(/(\n)/gm, "");
+    xmlResult = xmlResult.replace(/(")/gm, "\\\"")
+    var transformedStr = "[\"OnStatusChanged" + "\",\"" + xmlResult + "\"]";
+
+    var newCountStr = transformedStr.length + header.length + 1 + '';
+    var existingCountStr = rawMessage.length + '';
+
+    if (newCountStr.length - existingCountStr.length > 0) {
+        header = header + ' ';
+    }
+
+    var tempo = new Buffer(header + "42" + transformedStr , "binary");
     var upperThreshold = tempo.length -1;
     var numberArray = upperThreshold.toString().split('');
 
