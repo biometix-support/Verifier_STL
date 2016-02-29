@@ -23,7 +23,7 @@ ui.on('connection', function (uiSocket) {
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify(data)
+      body: data
     }, function (error, response, body) {
       if (!error && response.statusCode === 200) {
         console.log(body);
@@ -45,7 +45,7 @@ ui.on('connection', function (uiSocket) {
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify(data)
+      body: data
     }, function (error, response, body) {
       if (!error && response.statusCode === 200) {
         console.log(body);
@@ -95,18 +95,6 @@ ui.on('connection', function (uiSocket) {
           uiSocket.emit('OnNewDocumentScanned', stlTransformer.transform('OnNewDocumentScanned', message.utf8Data));
         }
       }
-    });
-
-    iomSocket.on('OnFingerprintScanned', function (data) {
-      uiSocket.emit('OnFingerprintScanned', stlTransformer.transform('OnFingerprintScanned', data));
-    });
-
-    iomSocket.on('OnPhotoTaken', function (data) {
-      uiSocket.emit('OnPhotoTaken', stlTransformer.transform('OnPhotoTaken', data));
-    });
-
-    iomSocket.on('OnNewDocumentScanned', function (data) {
-      uiSocket.emit('OnNewDocumentScanned', stlTransformer.transform('OnNewDocumentScanned', data));
     });
 
     uiSocket.emit('OnStatusChanged',

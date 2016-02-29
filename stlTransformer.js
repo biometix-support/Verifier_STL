@@ -26,7 +26,7 @@ module.exports = {
             return getXMLResultForAcquisition(rawMessage);
         }
         else if (event.indexOf(ON_FP_MATCH_RES) > -1 || event.indexOf(ON_FACE_MATCH_RES) > -1){
-            return getXMLResultForMatching(rawMessage);
+            return getXMLResultForMatching(data);
         }
 
         function cleanupXML(xmlResult) {
@@ -76,7 +76,7 @@ module.exports = {
                 }
             };
 
-            if (rawMessage.errorMsg.success) {
+            if (rawMessage.success) {
                 checkQualityResponse.ResponseStatus.Return = 0;
                 checkQualityResponse.QualityInfo.QualityScore = rawMessage.data.score;
             } else {
