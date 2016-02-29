@@ -1,7 +1,7 @@
   var http = require('http'),
   stlTransformer = require("./stlTransformer.js"),
-  express = require('express'),        // call express
-  app = express();                 // define our app using express
+express = require('express'),        // call express
+app = express();                 // define our app using express
 var proxiedPort = 3000;
 var proxyPort = 8001;
 const server = app.listen(proxyPort);
@@ -60,32 +60,57 @@ ui.on('connection', function (uiSocket) {
   });
 
   // Acquisition
-  var iomSocket = require('socket.io-client')('http://localhost:'+ proxiedPort);
-  iomSocket.on('OnFingerprintScanned', function(data){
-    uiSocket.emit('OnFingerprintScanned', stlTransformer.transform('OnFingerprintScanned', data));
-  });
+  //var wsImpl = window.WebSocket || window.MozWebSocket;
+  //var iomSocket = new wsImpl('ws://127.0.0.1:4501/Reader');//require('socket.io-client')('ws://127.0.0.1:4501/Reader');
+  var WebSocketClient = require('websocket').client;
 
-  uiSocket.on('OnFingerprintScanned', function () {
-    iomSocket.emit('OnFingerprintScanned', '');
-  });
+  var iomClient = new WebSocketClient();
+  iomClient.connect('ws://127.0.0.1:4501/Reader');
 
-  iomSocket.on('OnPhotoTaken', function(data){
-    uiSocket.emit('OnPhotoTaken', stlTransformer.transform('OnPhotoTaken', data));
-  });
+  iomClient.on('connect', function(iomSocket) {
+    uiSocket.on('OnFingerprintScanned', function () {
+      console.log('Send command to IOM socket ' + iomSocket);
+      iomSocket.send("getFingerscan()");
+    });
 
-  uiSocket.on('OnPhotoTaken', function () {
-    iomSocket.emit('OnPhotoTaken', '');
-  });
+    uiSocket.on('OnPhotoTaken', function () {
+      iomSocket.send("getCamera()");
+    });
 
-  iomSocket.on('OnNewDocumentScanned', function(data){
-    uiSocket.emit('OnNewDocumentScanned', stlTransformer.transform('OnNewDocumentScanned', data));
-  });
+    uiSocket.on('OnNewDocumentScanned', function () {
+      iomSocket.send("scanNewDoc()");
+    });
 
-  uiSocket.on('OnNewDocumentScanned', function () {
-    iomSocket.emit('OnNewDocumentScanned', '');
-  });
 
-  uiSocket.emit('OnStatusChanged',
-    '<result><status>success</status><message>connected</message></result>'
-  );
+
+    iomSocket.on('message', function(message) {
+      if (message.type === 'utf8') {
+        console.log("Received: '" + message.utf8Data + "'");
+
+        if (message.utf8Data.indexOf("photoUrl") > -1) {
+          uiSocket.emit('OnPhotoTaken', stlTransformer.transform('OnPhotoTaken', message.utf8Data));
+        } else if (message.utf8Data.indexOf("fingerprintUrl") > -1) {
+          uiSocket.emit('OnFingerprintScanned', stlTransformer.transform('OnFingerprintScanned', message.utf8Data));
+        } else if (message.utf8Data.indexOf("\"success\":true") > -1) {
+          uiSocket.emit('OnNewDocumentScanned', stlTransformer.transform('OnNewDocumentScanned', message.utf8Data));
+        }
+      }
+    });
+
+    iomSocket.on('OnFingerprintScanned', function (data) {
+      uiSocket.emit('OnFingerprintScanned', stlTransformer.transform('OnFingerprintScanned', data));
+    });
+
+    iomSocket.on('OnPhotoTaken', function (data) {
+      uiSocket.emit('OnPhotoTaken', stlTransformer.transform('OnPhotoTaken', data));
+    });
+
+    iomSocket.on('OnNewDocumentScanned', function (data) {
+      uiSocket.emit('OnNewDocumentScanned', stlTransformer.transform('OnNewDocumentScanned', data));
+    });
+
+    uiSocket.emit('OnStatusChanged',
+        '<result><status>success</status><message>connected</message></result>'
+    );
+  });
 });
