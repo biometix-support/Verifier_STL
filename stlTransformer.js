@@ -101,9 +101,7 @@ module.exports = {
         }
 
         function base64Encode(file) {
-            // read file
             var bitmap = fs.readFileSync(file);
-            // convert data to base64 encoded string
             return new Buffer(bitmap).toString('base64');
         }
     }

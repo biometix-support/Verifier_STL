@@ -1,8 +1,7 @@
-  var http = require('http'),
-  stlTransformer = require("./stlTransformer.js"),
+var http = require('http'),
+stlTransformer = require("./stlTransformer.js"),
 express = require('express'),        // call express
 app = express();                 // define our app using express
-var proxiedPort = 3000;
 var proxyPort = 8001;
 const server = app.listen(proxyPort);
 
@@ -26,13 +25,10 @@ ui.on('connection', function (uiSocket) {
       body: data
     }, function (error, response, body) {
       if (!error && response.statusCode === 200) {
-        console.log(body);
         uiSocket.emit('OnFaceRes', stlTransformer.transform('OnFaceRes', body));
       }
       else {
         console.log("error: " + error)
-        console.log("response.statusCode: " + response.statusCode)
-        console.log("response.statusText: " + response.statusText)
       }
     });
   });
@@ -48,20 +44,15 @@ ui.on('connection', function (uiSocket) {
       body: data
     }, function (error, response, body) {
       if (!error && response.statusCode === 200) {
-        console.log(body);
         uiSocket.emit('OnFPRes', stlTransformer.transform('OnFPRes', body));
       }
       else {
         console.log("error: " + error)
-        console.log("response.statusCode: " + response.statusCode)
-        console.log("response.statusText: " + response.statusText)
       }
     });
   });
 
   // Acquisition
-  //var wsImpl = window.WebSocket || window.MozWebSocket;
-  //var iomSocket = new wsImpl('ws://127.0.0.1:4501/Reader');//require('socket.io-client')('ws://127.0.0.1:4501/Reader');
   var WebSocketClient = require('websocket').client;
 
   var iomClient = new WebSocketClient();
@@ -81,12 +72,8 @@ ui.on('connection', function (uiSocket) {
       iomSocket.send("scanNewDoc()");
     });
 
-
-
     iomSocket.on('message', function(message) {
       if (message.type === 'utf8') {
-        console.log("Received: '" + message.utf8Data + "'");
-
         if (message.utf8Data.indexOf("photoUrl") > -1) {
           uiSocket.emit('OnPhotoTaken', stlTransformer.transform('OnPhotoTaken', message.utf8Data));
         } else if (message.utf8Data.indexOf("fingerprintUrl") > -1) {
