@@ -1,31 +1,65 @@
-var http = require('http'),
-  connect = require('connect'),
+  var http = require('http'),
   stlTransformer = require("./stlTransformer.js"),
   express = require('express'),        // call express
   app = express();                 // define our app using express
-//
-// The transforming function.
-//
-var transformerFunction = function (data, req, res) {
-    return stlTransformer.transform(data);
-};
-
-//
-// A proxy as a basic connect app.
-//
-
 var proxiedPort = 3000;
 var proxyPort = 8001;
-
-
-
-
-
 const server = app.listen(proxyPort);
 
-var ui = require('socket.io')(server);
+/* Matching */
+var request = require("request");
+var FP_MATCHING_URL = 'http://localhost/Matching/CompareFingerprints';
+var FACE_MATCHING_URL = 'http://localhost/Matching/CompareFaces';
 
+
+var ui = require('socket.io')(server);
 ui.on('connection', function (uiSocket) {
+  // Matching CompFaceReq
+  uiSocket.on('CompFaceReq', function (data) {
+    request({
+      url: FACE_MATCHING_URL,
+      method: "POST",
+      json: true,
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(data)
+    }, function (error, response, body) {
+      if (!error && response.statusCode === 200) {
+        console.log(body);
+        uiSocket.emit('OnFaceRes', stlTransformer.transform('OnFaceRes', body));
+      }
+      else {
+        console.log("error: " + error)
+        console.log("response.statusCode: " + response.statusCode)
+        console.log("response.statusText: " + response.statusText)
+      }
+    });
+  });
+
+  uiSocket.on('ComFinReq', function (data) {
+    request({
+      url: FP_MATCHING_URL,
+      method: "POST",
+      json: true,
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(data)
+    }, function (error, response, body) {
+      if (!error && response.statusCode === 200) {
+        console.log(body);
+        uiSocket.emit('OnFPRes', stlTransformer.transform('OnFPRes', body));
+      }
+      else {
+        console.log("error: " + error)
+        console.log("response.statusCode: " + response.statusCode)
+        console.log("response.statusText: " + response.statusText)
+      }
+    });
+  });
+
+  // Acquisition
   var iomSocket = require('socket.io-client')('http://localhost:'+ proxiedPort);
   iomSocket.on('OnFingerprintScanned', function(data){
     uiSocket.emit('OnFingerprintScanned', stlTransformer.transform('OnFingerprintScanned', data));
