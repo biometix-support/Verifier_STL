@@ -61,26 +61,28 @@ ui.on('connection', function (uiSocket) {
   /**
    * Acquisition
    */
-
   // connect to C# web socket.
   var WebSocketClient = require('websocket').client;
   var iomClient = new WebSocketClient();
   iomClient.connect('ws://127.0.0.1:4501/Reader');
 
   iomClient.on('connect', function(iomSocket) {
+    // request finger print scan
     uiSocket.on('OnFingerprintScanned', function () {
-      console.log('Send command to IOM socket ' + iomSocket);
       iomSocket.send("getFingerscan()");
     });
 
+    // request to take photo
     uiSocket.on('OnPhotoTaken', function () {
       iomSocket.send("getCamera()");
     });
 
+    // request to scan a passport
     uiSocket.on('OnNewDocumentScanned', function () {
       iomSocket.send("scanNewDoc()");
     });
 
+    // handle message from IOM socket
     iomSocket.on('message', function(message) {
       if (message.type === 'utf8') {
         if (message.utf8Data.indexOf("photoUrl") > -1) {
