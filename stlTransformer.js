@@ -1,4 +1,3 @@
-
 /**
  * Created by phillip on 23/02/2016.
  */
@@ -8,12 +7,19 @@ var js2xmlparser = require("js2xmlparser"),
 
 module.exports = {
     transform: function(event, data) {
+        /**
+         * Constant definitions.
+         */
+        const ON_FINGERPRINT_SCANNED = "OnFingerprintScanned";
+        const ON_PHOTO_TAKEN = "OnPhotoTaken";
+        const ON_DOCUMENT_SCANNED = "OnNewDocumentScanned";
+        const ON_FP_MATCH_RES = 'OnFPRes';
+        const ON_FACE_MATCH_RES = 'OnFaceRes';
+
+        /**
+         * Global variables.
+         */
         var rawMessage = data.toString('ascii');
-        var ON_FINGERPRINT_SCANNED = "OnFingerprintScanned";
-        var ON_PHOTO_TAKEN = "OnPhotoTaken";
-        var ON_DOCUMENT_SCANNED = "OnNewDocumentScanned";
-        var ON_FP_MATCH_RES = 'OnFPRes';
-        var ON_FACE_MATCH_RES = 'OnFaceRes';
         var XML_CONVERT_OPTIONS = {
             prettyPrinting: {
                 enabled: true,
@@ -21,27 +27,27 @@ module.exports = {
             }
         };
 
+        /**
+         * Main flow.
+         */
         if (event.indexOf(ON_FINGERPRINT_SCANNED) > -1 || event.indexOf(ON_PHOTO_TAKEN) > -1
             || event.indexOf(ON_DOCUMENT_SCANNED) > -1){
-            return getXMLResultForAcquisition(rawMessage);
+            return convertAcquisitionResultToXML(rawMessage);
         }
         else if (event.indexOf(ON_FP_MATCH_RES) > -1 || event.indexOf(ON_FACE_MATCH_RES) > -1){
-            return getXMLResultForMatching(data);
+            return convertMatchingResultToXML(data);
         }
 
-        function cleanupXML(xmlResult) {
-            xmlResult = xmlResult.replace(/(\n)/gm, "");
-            xmlResult = xmlResult.replace(/("|&quot;)/gm, "\\\"");
-            return xmlResult;
-        }
+        /**
+         * Utility functions.
+         */
 
-        function convertAcquisitionResultToXML(result) {
-            var xmlResult = js2xmlparser("result", result, XML_CONVERT_OPTIONS);
-            xmlResult = cleanupXML(xmlResult);
-            return xmlResult;
-        }
-
-        function extractedResult(rawMessage) {
+        /**
+         * Populate JSON object with Acquisition result.
+         * @param rawMessage
+         * @returns {{status: string, message: string, sensorData: Array}}
+         */
+        function populateAcquisitionResult(rawMessage) {
             var result = {
                 "status": "",
                 "message": "",
@@ -65,6 +71,11 @@ module.exports = {
             return result;
         }
 
+        /**
+         * Populate JSON object with Matching result.
+         * @param rawMessage
+         * @returns {{ResponseStatus: {Return: number, Message: string}, QualityInfo: {QualityScore: number}}}
+         */
         function populateCheckQualityResponse(rawMessage) {
             var checkQualityResponse = {
                 ResponseStatus: {
@@ -87,22 +98,49 @@ module.exports = {
             return checkQualityResponse;
         }
 
-        function getXMLResultForMatching(rawMessage) {
+        /**
+         * Convert matching result to XML.
+         * @param rawMessage
+         * @returns XML matching result.
+         */
+        function convertMatchingResultToXML(rawMessage) {
             var checkQualityResponse = populateCheckQualityResponse(rawMessage);
             var xmlResult = js2xmlparser("CheckQualityResponse", checkQualityResponse, XML_CONVERT_OPTIONS);
 
             return cleanupXML(xmlResult);
         }
 
-        function getXMLResultForAcquisition(rawMessage) {
-            var result = extractedResult(rawMessage);
-            var xmlResult = convertAcquisitionResultToXML(result);
-            return xmlResult;
+        /**
+         * Convert acquisition result to XML.
+         * @param rawMessage
+         * @returns {*}
+         */
+        function convertAcquisitionResultToXML(rawMessage) {
+            var result = populateAcquisitionResult(rawMessage);
+            var xmlResult = js2xmlparser("result", result, XML_CONVERT_OPTIONS);
+
+            return cleanupXML(xmlResult);
         }
 
+        /**
+         * Convert image file to base64.
+         * @param file image file.
+         * @returns base64 string.
+         */
         function base64Encode(file) {
             var bitmap = fs.readFileSync(file);
             return new Buffer(bitmap).toString('base64');
+        }
+
+        /**
+         * Clean up XML string.
+         * @param xmlResult
+         * @returns {XML|string|*}
+         */
+        function cleanupXML(xmlResult) {
+            xmlResult = xmlResult.replace(/(\n)/gm, "");
+            xmlResult = xmlResult.replace(/("|&quot;)/gm, "\\\"");
+            return xmlResult;
         }
     }
 };

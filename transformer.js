@@ -1,19 +1,25 @@
 var http = require('http'),
-stlTransformer = require("./stlTransformer.js"),
-express = require('express'),        // call express
-app = express();                 // define our app using express
+    stlTransformer = require("./stlTransformer.js"),
+    express = require('express'),
+    request = require("request"),
+    app = express();
+
 var proxyPort = 8001;
+
+/**
+ * Constant defintions.
+ */
 const server = app.listen(proxyPort);
-
-/* Matching */
-var request = require("request");
-var FP_MATCHING_URL = 'http://localhost/Matching/CompareFingerprints';
-var FACE_MATCHING_URL = 'http://localhost/Matching/CompareFaces';
+const FP_MATCHING_URL = 'http://localhost/Matching/CompareFingerprints';
+const FACE_MATCHING_URL = 'http://localhost/Matching/CompareFaces';
 
 
-var ui = require('socket.io')(server);
+var ui = require('socket.io')(server); // ui socket to connect to front-end.
 ui.on('connection', function (uiSocket) {
-  // Matching CompFaceReq
+
+  /**
+   * Matching
+   */
   uiSocket.on('CompFaceReq', function (data) {
     request({
       url: FACE_MATCHING_URL,
@@ -52,9 +58,12 @@ ui.on('connection', function (uiSocket) {
     });
   });
 
-  // Acquisition
-  var WebSocketClient = require('websocket').client;
+  /**
+   * Acquisition
+   */
 
+  // connect to C# web socket.
+  var WebSocketClient = require('websocket').client;
   var iomClient = new WebSocketClient();
   iomClient.connect('ws://127.0.0.1:4501/Reader');
 
@@ -84,6 +93,7 @@ ui.on('connection', function (uiSocket) {
       }
     });
 
+    //TODO: clarify with IOM on how to check device connection status.
     uiSocket.emit('OnStatusChanged',
         '<result><status>success</status><message>connected</message></result>'
     );
