@@ -6,7 +6,7 @@ var js2xmlparser = require("js2xmlparser"),
     fs = require('fs');
 
 module.exports = {
-    transform: function(event, data) {
+    transform: function (event, data) {
         /**
          * Constant definitions.
          */
@@ -31,10 +31,10 @@ module.exports = {
          * Main flow.
          */
         if (event.indexOf(ON_FINGERPRINT_SCANNED) > -1 || event.indexOf(ON_PHOTO_TAKEN) > -1
-            || event.indexOf(ON_DOCUMENT_SCANNED) > -1){
+            || event.indexOf(ON_DOCUMENT_SCANNED) > -1) {
             return convertAcquisitionResultToXML(rawMessage);
         }
-        else if (event.indexOf(ON_FP_MATCH_RES) > -1 || event.indexOf(ON_FACE_MATCH_RES) > -1){
+        else if (event.indexOf(ON_FP_MATCH_RES) > -1 || event.indexOf(ON_FACE_MATCH_RES) > -1) {
             return convertMatchingResultToXML(data);
         }
 
@@ -64,7 +64,7 @@ module.exports = {
                     var imageURL = imagePathArray[i];
 
                     var base64 = base64Encode(imageURL);
-                    result.sensorData.push({'imageURL' : imageURL, 'base64': base64});
+                    result.sensorData.push({ 'imageURL': imageURL, 'base64': base64 });
                 }
             }
 
@@ -140,7 +140,17 @@ module.exports = {
         function cleanupXML(xmlResult) {
             xmlResult = xmlResult.replace(/(\n)/gm, "");
             xmlResult = xmlResult.replace(/("|&quot;)/gm, "\\\"");
+
+            var fs = require('fs');
+            var stream = fs.createWriteStream("c:\\temp\\my_file.txt");
+            stream.once('open', function (fd) {
+                stream.write(xmlResult);
+                stream.end();
+            });
+
             return xmlResult;
+
+
         }
     }
 };
