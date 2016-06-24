@@ -4,8 +4,9 @@ var http = require('http'),
     fakeData = require("./fakeData.js"),
     express = require('express'),
     request = require("request"),
-    app = express();
-
+    app = express(),
+    fs = require('fs'),
+    path = require("path");
 // this will send a fake data back to the client
 var isTest = false;
 
@@ -15,9 +16,59 @@ var proxyPort = 8001;
  * Constant defintions.
  */
 const server = app.listen(proxyPort);
-const FP_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFingerprints';
-const FACE_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFaces';
+const FP_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFingerprintsPath';
+const FACE_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFacesPath';
+const TEMP_DIR = 'C:\\Temp\\tmpPhotos\\';
 
+function clearTempFolder() {
+    // creates a new dir if it does no exist
+    if (!fs.existsSync(TEMP_DIR)) {
+        fs.mkdirSync(TEMP_DIR);
+    }
+    else {
+        // delete the temp folder with temp files and crate a empty one
+        deleteFolderRecursive(TEMP_DIR);
+        fs.mkdirSync(TEMP_DIR);
+    }
+}
+clearTempFolder();
+
+function saveImageToDisk(base64File, callback) {
+    var base64Data = base64File.replace(/^data:image\/png;base64,/, "");
+    base64Data = base64File.replace(/^data:image\/jpeg;base64,/, "");
+
+    var fileName = generateId(10) + '.jpeg';
+
+    fs.writeFile(TEMP_DIR + fileName, base64Data, 'base64', function (err) {
+        if (err)
+            console.log(err);
+        else {
+            callback(fileName);
+        }
+    });
+}
+function deleteFolderRecursive(path) {
+    if (fs.existsSync(path)) {
+        fs.readdirSync(path).forEach(function (file, index) {
+            var curPath = path + "/" + file;
+            if (fs.lstatSync(curPath).isDirectory()) { // recurse
+                deleteFolderRecursive(curPath);
+            } else { // delete file
+                fs.unlinkSync(curPath);
+            }
+        });
+        fs.rmdirSync(path);
+    }
+}
+
+function generateId(length) {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (var i = 0; i < length; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+}
 
 var ui = require('socket.io')(server); // ui socket to connect to front-end.
 ui.on('connection', function (uiSocket) {
@@ -27,25 +78,40 @@ ui.on('connection', function (uiSocket) {
      * Matching
      */
     uiSocket.on('CompFaceReq', function (data) {
+
         if (isTest) {
             uiSocket.emit('OnFaceRes', fakeData.getFacialMatch());
         }
         else {
-            request({
-                url: FACE_MATCHING_URL,
-                method: "POST",
-                json: true,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: data
-            }, function (error, response, body) {
-                if (!error && response.statusCode === 200) {
-                    uiSocket.emit('OnFaceRes', stlTransformer.transform('OnFaceRes', body));
-                }
-                else {
-                    console.log("error: " + error)
-                }
+            clearTempFolder();
+            saveImageToDisk(data.face1, function (filename1) {
+                saveImageToDisk(data.face2, function (filename2) {
+                    var face1 = TEMP_DIR + filename1;
+                    var face2 = TEMP_DIR + filename2;
+
+                    var faceData = {
+                        face1: face1,
+                        face2: face2
+                    };
+
+                    request({
+                        url: FACE_MATCHING_URL,
+                        method: "POST",
+                        json: true,
+                        headers: {
+                            "content-type": "application/json",
+                        },
+                        body: faceData
+                    }, function (error, response, body) {
+                        if (!error && response.statusCode === 200) {
+                            uiSocket.emit('OnFaceRes', stlTransformer.transform('OnFaceRes', body));
+                        }
+                        else {
+                            console.log("error: " + error)
+                        }
+                    });
+                });
+
             });
         }
     });
@@ -56,21 +122,34 @@ ui.on('connection', function (uiSocket) {
             uiSocket.emit('OnFPRes', fakeData.fpMatch());
         }
         else {
-            request({
-                url: FP_MATCHING_URL,
-                method: "POST",
-                json: true,
-                headers: {
-                    "content-type": "application/json",
-                },
-                body: data
-            }, function (error, response, body) {
-                if (!error && response.statusCode === 200) {
-                    uiSocket.emit('OnFPRes', stlTransformer.transform('OnFPRes', body));
-                }
-                else {
-                    console.log("error: " + error)
-                }
+            clearTempFolder();
+            saveImageToDisk(data.finger1, function (filename1) {
+                saveImageToDisk(data.finger2, function (filename2) {
+                    var finger1 = TEMP_DIR + filename1;
+                    var finger2 = TEMP_DIR + filename2;
+
+                    var fingerData = {
+                        finger1: finger1,
+                        finger2: finger2
+                    };
+
+                    request({
+                        url: FP_MATCHING_URL,
+                        method: "POST",
+                        json: true,
+                        headers: {
+                            "content-type": "application/json",
+                        },
+                        body: fingerData
+                    }, function (error, response, body) {
+                        if (!error && response.statusCode === 200) {
+                            uiSocket.emit('OnFPRes', stlTransformer.transform('OnFPRes', body));
+                        }
+                        else {
+                            console.log("error: " + error)
+                        }
+                    });
+                });
             });
         }
     });
@@ -116,9 +195,9 @@ ui.on('connection', function (uiSocket) {
         });
 
         function checkDevices() {
-          
-                iomSocket.send("checkDevices()");
-          }
+
+            iomSocket.send("checkDevices()");
+        }
 
         // request to scan a passport
         uiSocket.on('TriggerNewDocumentScan', function () {
