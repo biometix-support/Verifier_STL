@@ -1,0 +1,6 @@
+FROM node:latest
+ADD . /home/Verifier_STL
+WORKDIR /home/Verifier_STL
+RUN npm install
+RUN npm rebuild
+ENTRYPOINT node transformer.js
