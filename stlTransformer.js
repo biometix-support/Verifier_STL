@@ -3,6 +3,9 @@
  */
 
 var js2xmlparser = require("js2xmlparser"),
+    config = require("./config.js"),
+    gm = require('gm'),
+    deasync = require('deasync'),
     fs = require('fs');
 
 module.exports = {
@@ -128,7 +131,8 @@ module.exports = {
          * @returns base64 string.
          */
         function base64Encode(file) {
-            var bitmap = fs.readFileSync(file);
+            var newFileName = resize(file);
+            var bitmap = fs.readFileSync(newFileName);
             return new Buffer(bitmap).toString('base64');
         }
 
@@ -151,6 +155,23 @@ module.exports = {
             return xmlResult;
 
 
+        }
+
+        function resize(file) {
+            var newFileName = file.replace('.', '-thumb.'),
+                done = false;
+
+            gm(file)
+                .resize(config.image.maxHeight, config.image.maxWidth)
+                .noProfile()
+                .write(newFileName, function (err) {
+                    if (err) throw err;
+                    done = true;
+                });
+
+            deasync.loopWhile(function () { return !done; });
+
+            return newFileName;
         }
     }
 };
