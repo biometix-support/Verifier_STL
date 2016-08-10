@@ -73,16 +73,45 @@ function generateId(length) {
 var ui = require('socket.io')(server); // ui socket to connect to front-end.
 ui.on('connection', function (uiSocket) {
     console.log('Socket io connected', uiSocket.client.id);
+    // Init :Catch Events for Test Data
+    uiSocket.on('CompFaceReq', function (data) {
+        if (isTest) {
+            uiSocket.emit('OnFaceRes', fakeData.getFacialMatch());
+        }
+    });
+    uiSocket.on('ComFinReq', function (data) {
+        if (isTest) {
+            uiSocket.emit('OnFPRes', fakeData.fpMatch());
+        }
+    });
+    uiSocket.on('TriggerFingerprintScan', function () {
+        if (isTest) {
+            uiSocket.emit('OnFingerprintScanned', fakeData.getFP());
+        }
+    });
+
+    uiSocket.on('TriggerPhotoTake', function () {
+        if (isTest) {
+            uiSocket.emit('OnPhotoTaken', fakeData.photoTaken());
+        }
+    });
+    uiSocket.on('checkStatus', function () {
+        if (isTest) {
+            uiSocket.emit('OnStatusChanged', fakeData.getDevices());
+        }
+    });
+    uiSocket.on('TriggerNewDocumentScan', function () {
+        if (isTest) {
+            uiSocket.emit('OnNewDocumentScanned', testFile.getData());
+        }
+    });
+    // END: Test Data
 
     /**
      * Matching
      */
     uiSocket.on('CompFaceReq', function (data) {
-
-        if (isTest) {
-            uiSocket.emit('OnFaceRes', fakeData.getFacialMatch());
-        }
-        else {
+        if (!isTest) {
             clearTempFolder();
             saveImageToDisk(data.face1, function (filename1) {
                 saveImageToDisk(data.face2, function (filename2) {
@@ -116,12 +145,8 @@ ui.on('connection', function (uiSocket) {
         }
     });
 
-
     uiSocket.on('ComFinReq', function (data) {
-        if (isTest) {
-            uiSocket.emit('OnFPRes', fakeData.fpMatch());
-        }
-        else {
+        if (!isTest) {
             clearTempFolder();
             saveImageToDisk(data.finger1, function (filename1) {
                 saveImageToDisk(data.finger2, function (filename2) {
@@ -167,51 +192,37 @@ ui.on('connection', function (uiSocket) {
         checkDevices();
         // request finger print scan
         uiSocket.on('TriggerFingerprintScan', function () {
-            if (isTest) {
-                uiSocket.emit('OnFingerprintScanned', fakeData.getFP());
-            }
-            else {
+            if (!isTest) {
                 iomSocket.send("getFingerscan()");
             }
         });
 
         // request to take photo
         uiSocket.on('TriggerPhotoTake', function () {
-            if (isTest) {
-                uiSocket.emit('OnPhotoTaken', fakeData.photoTaken());
-            }
-            else {
+            if (!isTest) {
                 iomSocket.send("getCamera()");
             }
         });
 
         uiSocket.on('checkStatus', function () {
-            if (isTest) {
-                uiSocket.emit('OnStatusChanged', fakeData.getDevices());
-            }
-            else {
+            if (!isTest) {
                 iomSocket.send("checkDevices()");
             }
         });
 
         function checkDevices() {
-
             iomSocket.send("checkDevices()");
         }
 
         // request to scan a passport
         uiSocket.on('TriggerNewDocumentScan', function () {
-            if (isTest) {
-                uiSocket.emit('OnNewDocumentScanned', testFile.getData());
-            }
-            else {
+            if (!isTest) {
                 iomSocket.send("scanNewDoc()");
             }
         });
 
         // handle message from IOM socket
         iomSocket.on('message', function (message) {
-
             if (message.type === 'utf8' && uiSocket.connected) {
                 if (message.utf8Data.indexOf("photoUrl") > -1) {
                     uiSocket.emit('OnPhotoTaken', stlTransformer.transform('OnPhotoTaken', message.utf8Data));
