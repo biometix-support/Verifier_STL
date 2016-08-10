@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  verifier_stl:
+    restart: never
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    expose:
+     - "8001"
+    environment:
+     - NODE_ENV=development
+    volumes:
+     - .:/home/Verifier_STL
