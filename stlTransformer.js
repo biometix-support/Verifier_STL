@@ -6,6 +6,8 @@ var js2xmlparser = require("js2xmlparser"),
     config = require("./config.js"),
     gm = require('gm'),
     deasync = require('deasync'),
+    imagemin = require('image-min'),
+    path = require('path'),
     fs = require('fs');
 
 module.exports = {
@@ -131,7 +133,13 @@ module.exports = {
          * @returns base64 string.
          */
         function base64Encode(file) {
-            var newFileName = resize(file);
+            var isFingePrint = event.indexOf(ON_FINGERPRINT_SCANNED) > -1,
+                isPhoto = event.indexOf(ON_PHOTO_TAKEN) > -1,
+                isDocument = event.indexOf(ON_DOCUMENT_SCANNED) > -1,
+                configurationName = isFingePrint ? 'fingerPrint' : isPhoto ? 'photo' : isDocument ? 'document' : '(empty)',
+                minifyConfiguration = config.image[configurationName];
+
+            var newFileName = minify(file, minifyConfiguration);
             var bitmap = fs.readFileSync(newFileName);
             return new Buffer(bitmap).toString('base64');
         }
@@ -153,25 +161,54 @@ module.exports = {
             });
 
             return xmlResult;
-
-
         }
-
-        function resize(file) {
-            var newFileName = file.replace('.', '-thumb.'),
-                done = false;
-
-            gm(file)
-                .resize(config.image.maxHeight, config.image.maxWidth)
-                .noProfile()
-                .write(newFileName, function (err) {
-                    if (err) throw err;
-                    done = true;
-                });
-
-            deasync.loopWhile(function () { return !done; });
-
-            return newFileName;
-        }
-    }
+    },
+    minify: minify
 };
+
+function minify(file, minifyConfiguration) {
+    if (!minifyConfiguration)
+        return file;
+
+    var stats = fs.statSync(file),
+        fileSizeInBytes = stats["size"],
+        //Convert the file size to megabytes (optional)
+        fileSizeInKbytes = fileSizeInBytes / 1024.0;
+
+    if (fileSizeInKbytes <= minifyConfiguration.moreThan)
+        return file;
+
+    if (minifyConfiguration.method == 'resize')
+        return resize(file, minifyConfiguration);
+    else if (minifyConfiguration.method == 'compress')
+        return compress(file, minifyConfiguration);
+    else
+        throw 'Invalid minify method';
+}
+
+function resize(file, minifyConfiguration) {
+    var newFileName = file.replace('.', '-thumb.'),
+        done = false;
+
+    gm(file)
+        .resize(minifyConfiguration.options.maxHeight, minifyConfiguration.options.maxWidth)
+        .noProfile()
+        .write(newFileName, function (err) {
+            if (err) throw err;
+            done = true;
+        });
+
+    deasync.loopWhile(function () { return !done; });
+
+    return newFileName;
+}
+
+function compress(file, minifyConfiguration) {
+    var src = fs.createReadStream(file),
+        ext = path.extname(src.path);
+        newFileName = file.substr(0, file.lastIndexOf(".")) + "-min." + ext;
+
+    src
+        .pipe(imagemin({ ext: ext }))
+        .pipe(fs.createWriteStream(newFileName));
+}
