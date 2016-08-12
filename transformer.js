@@ -90,6 +90,12 @@ ui.on('connection', function (uiSocket) {
         }
     });
 
+    uiSocket.on('Trigger10FingerprintScan', function () {
+        if (isTest) {
+            uiSocket.emit('On10FingerprintScanned', fakeData.getFP());
+        }
+    });
+
     uiSocket.on('TriggerPhotoTake', function () {
         if (isTest) {
             uiSocket.emit('OnPhotoTaken', fakeData.photoTaken());
@@ -190,10 +196,17 @@ ui.on('connection', function (uiSocket) {
     var clients = [];
     iomClient.on('connect', function (iomSocket) {
         checkDevices();
+
         // request finger print scan
         uiSocket.on('TriggerFingerprintScan', function () {
             if (!isTest) {
                 iomSocket.send("getFingerscan()");
+            }
+        });
+    
+        uiSocket.on('TriggerScanFinger', function (data) {
+            if (!isTest) {
+                iomSocket.send(data);
             }
         });
 
