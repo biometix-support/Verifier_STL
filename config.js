@@ -5,8 +5,8 @@ module.exports = {
             method: 'resize', //resize or compress
             // resize options
             options: {
-                maxWidth: 1000,
-                maxHeight: 1000
+                maxWidth: 900,
+                maxHeight: 900
             }
         }
     }
