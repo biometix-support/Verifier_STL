@@ -8,7 +8,7 @@ var http = require('http'),
     fs = require('fs'),
     path = require("path");
 // this will send a fake data back to the client
-var isTest = false;
+var isTest = true;
 
 var proxyPort = 8001;
 
@@ -18,7 +18,8 @@ var proxyPort = 8001;
 const server = app.listen(proxyPort);
 const FP_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFingerprintsPath';
 const FACE_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFacesPath';
-const TEMP_DIR = 'C:\\Temp\\tmpPhotos\\';
+//const TEMP_DIR = 'C:\\Temp\\tmpPhotos\\';
+const TEMP_DIR = '/Users/stanleywijoyo/Development/Verifier_STL/tmpPhotos/';
 
 function clearTempFolder() {
     // creates a new dir if it does no exist
@@ -84,15 +85,26 @@ ui.on('connection', function (uiSocket) {
             uiSocket.emit('OnFPRes', fakeData.fpMatch());
         }
     });
+    uiSocket.on('Compare10FPReq', function (data) {
+        if (isTest) {
+            uiSocket.emit('OnFPRes', fakeData.fpMatch());
+        }
+    });
     uiSocket.on('TriggerFingerprintScan', function () {
         if (isTest) {
             uiSocket.emit('OnFingerprintScanned', fakeData.getFP());
         }
     });
 
-    uiSocket.on('Trigger10FingerprintScan', function () {
+    uiSocket.on('Trigger10FingerprintScan', function (jsonSelectedDeviceData) {
         if (isTest) {
-            uiSocket.emit('On10FingerprintScanned', fakeData.getFP());
+            var jsonData = JSON.parse(jsonSelectedDeviceData);
+            if (jsonData.device === 'lumidigm') {
+                uiSocket.emit('On10FingerprintScanned', fakeData.getFP());
+            }
+            else if (jsonData.device === 'crossmatch') {
+                uiSocket.emit('On10FingerprintScanned', fakeData.get10FPCrossmatch());
+            }
         }
     });
 
