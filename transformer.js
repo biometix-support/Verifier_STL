@@ -8,9 +8,10 @@ var http = require('http'),
     fs = require('fs'),
     path = require("path");
 // this will send a fake data back to the client
-var isTest = true;
+var isTest = false;
 
 var proxyPort = 8001;
+var current10FPScanningDevice = '';
 
 /**
  * Constant defintions.
@@ -18,8 +19,7 @@ var proxyPort = 8001;
 const server = app.listen(proxyPort);
 const FP_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFingerprintsPath';
 const FACE_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFacesPath';
-//const TEMP_DIR = 'C:\\Temp\\tmpPhotos\\';
-const TEMP_DIR = '/Users/stanleywijoyo/Development/Verifier_STL/tmpPhotos/';
+const TEMP_DIR = 'C:\\Temp\\tmpPhotos\\';
 
 function clearTempFolder() {
     // creates a new dir if it does no exist
@@ -100,7 +100,7 @@ ui.on('connection', function (uiSocket) {
         if (isTest) {
             var jsonData = JSON.parse(jsonSelectedDeviceData);
             if (jsonData.device === 'lumidigm') {
-                uiSocket.emit('On10FingerprintScanned', fakeData.getFP());
+                uiSocket.emit('On10FingerprintScanned', fakeData.get10FPLumidigm());
             }
             else if (jsonData.device === 'crossmatch') {
                 uiSocket.emit('On10FingerprintScanned', fakeData.get10FPCrossmatch());
@@ -212,6 +212,7 @@ ui.on('connection', function (uiSocket) {
         // request finger print scan
         uiSocket.on('TriggerFingerprintScan', function () {
             if (!isTest) {
+                current10FPScanningDevice = '';
                 iomSocket.send("getFingerscan()");
             }
         });
@@ -219,6 +220,19 @@ ui.on('connection', function (uiSocket) {
         uiSocket.on('TriggerScanFinger', function (data) {
             if (!isTest) {
                 iomSocket.send(data);
+            }
+        });
+        
+        uiSocket.on('Trigger10FingerprintScan', function (jsonSelectedDeviceData) {
+            if (!isTest) {
+                var jsonData = JSON.parse(jsonSelectedDeviceData);
+                current10FPScanningDevice = jsonData.device;
+                if (jsonData.device === 'lumidigm') {
+                    iomSocket.send("getFingerscan()");
+                }
+                else if (jsonData.device === 'crossmatch') {
+                    uiSocket.emit('On10FingerprintScanned', fakeData.get10FPCrossmatch());
+                }
             }
         });
 
@@ -251,13 +265,22 @@ ui.on('connection', function (uiSocket) {
             if (message.type === 'utf8' && uiSocket.connected) {
                 if (message.utf8Data.indexOf("photoUrl") > -1) {
                     uiSocket.emit('OnPhotoTaken', stlTransformer.transform('OnPhotoTaken', message.utf8Data));
-                } else if (message.utf8Data.indexOf("fingerprintUrl") > -1) {
-                    uiSocket.emit('OnFingerprintScanned', stlTransformer.transform('OnFingerprintScanned', message.utf8Data));
-                } else if (message.utf8Data.indexOf("\"success\":true") > -1) {
+                } 
+                else if (message.utf8Data.indexOf("fingerprintUrl") > -1) {
+                    if (current10FPScanningDevice === '') {
+                        uiSocket.emit('OnFingerprintScanned', stlTransformer.transform('OnFingerprintScanned', message.utf8Data));
+                    }
+                    else {
+                        uiSocket.emit('On10FingerprintScanned', stlTransformer.transform('OnFingerprintScanned', message.utf8Data));
+                    }
+                } 
+                else if (message.utf8Data.indexOf("\"success\":true") > -1) {
                     uiSocket.emit('OnNewDocumentScanned', stlTransformer.transform('OnNewDocumentScanned', message.utf8Data));
-                } else if (message.utf8Data.indexOf("Devices") > -1) {
+                } 
+                else if (message.utf8Data.indexOf("Devices") > -1) {
                     uiSocket.emit('OnStatusChanged', message.utf8Data);
-                } else {
+                } 
+                else {
                     uiSocket.emit('OnReadingDocStatus', message.utf8Data);
                 }
             }
