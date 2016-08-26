@@ -8,7 +8,7 @@ var http = require('http'),
     fs = require('fs'),
     path = require("path");
 // this will send a fake data back to the client
-var isTest = true;
+var isTest = false;
 
 var proxyPort = 8001;
 var current10FPScanningDevice = '';
@@ -19,8 +19,7 @@ var current10FPScanningDevice = '';
 const server = app.listen(proxyPort);
 const FP_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFingerprintsPath';
 const FACE_MATCHING_URL = 'http://127.0.0.1/Matching/CompareFacesPath';
-//const TEMP_DIR = 'C:\\Temp\\tmpPhotos\\';
-const TEMP_DIR = '/Users/stanleywijoyo/Development/Verifier_STL/tmpPhotos/';
+const TEMP_DIR = 'C:\\Temp\\tmpPhotos\\';
 
 function clearTempFolder() {
     // creates a new dir if it does no exist
@@ -201,59 +200,31 @@ ui.on('connection', function (uiSocket) {
     uiSocket.on('Compare10FPReq', function (data) {
         if (!isTest) {
             clearTempFolder();
-            saveImageToDisk(data.left.finger1, function (filename1) {
-                saveImageToDisk(data.left.finger2, function (filename2) {
-                    var leftFinger1 = TEMP_DIR + filename1;
-                    var leftFinger2 = TEMP_DIR + filename2;
-                    var leftFingerData = {
-                        finger1: leftFinger1,
-                        finger2: leftFinger2
+            saveImageToDisk(data.finger1, function (filename1) {
+                saveImageToDisk(data.finger2, function (filename2) {
+                    var finger1 = TEMP_DIR + filename1;
+                    var finger2 = TEMP_DIR + filename2;
+
+                    var fingerData = {
+                        finger1: finger1,
+                        finger2: finger2
                     };
-                    saveImageToDisk(data.right.finger1, function (filename3) {
-                        saveImageToDisk(data.right.finger2, function (filename4) {
-                            var rightFinger1 = TEMP_DIR + filename1;
-                            var rightFinger2 = TEMP_DIR + filename2;
-                            var rightFingerData = {
-                                finger1: rightFinger1,
-                                finger2: rightFinger2
-                            };
-                            request({
-                                url: FP_MATCHING_URL,
-                                method: "POST",
-                                json: true,
-                                headers: {
-                                    "content-type": "application/json",
-                                },
-                                body: leftFingerData
-                            }, function (error, response, body) {
-                                if (!error && response.statusCode === 200) {
-                                    var resp10FP = {
-                                        left: body,
-                                        right: null
-                                    };
-                                    request({
-                                        url: FP_MATCHING_URL,
-                                        method: "POST",
-                                        json: true,
-                                        headers: {
-                                            "content-type": "application/json",
-                                        },
-                                        body: rightFingerData
-                                    }, function (error, response, body) {
-                                        if (!error && response.statusCode === 200) {
-                                            resp10FP.right = body;
-                                            uiSocket.emit('On10FPRes', stlTransformer.transform('On10FPRes', resp10FP));
-                                        }
-                                        else {
-                                            console.log("error: " + error);
-                                        }
-                                    });
-                                }
-                                else {
-                                    console.log("error: " + error);
-                                }
-                            });
-                        });
+
+                    request({
+                        url: FP_MATCHING_URL,
+                        method: "POST",
+                        json: true,
+                        headers: {
+                            "content-type": "application/json",
+                        },
+                        body: fingerData
+                    }, function (error, response, body) {
+                        if (!error && response.statusCode === 200) {
+                            uiSocket.emit('On10FPRes', stlTransformer.transform('On10FPRes', body));
+                        }
+                        else {
+                            console.log("error: " + error)
+                        }
                     });
                 });
             });

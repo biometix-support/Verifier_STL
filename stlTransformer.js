@@ -19,7 +19,6 @@ module.exports = {
         const ON_PHOTO_TAKEN = "OnPhotoTaken";
         const ON_DOCUMENT_SCANNED = "OnNewDocumentScanned";
         const ON_FP_MATCH_RES = 'OnFPRes';
-        const ON_10_FP_MATCH_RES = 'On10FPRes';
         const ON_FACE_MATCH_RES = 'OnFaceRes';
 
         /**
@@ -39,9 +38,6 @@ module.exports = {
         if (event.indexOf(ON_FINGERPRINT_SCANNED) > -1 || event.indexOf(ON_PHOTO_TAKEN) > -1
             || event.indexOf(ON_DOCUMENT_SCANNED) > -1) {
             return convertAcquisitionResultToXML(rawMessage);
-        }
-        else if (event.indexOf(ON_10_FP_MATCH_RES) > -1) {
-            return convert10FPMatchingResultToXML(data);
         }
         else if (event.indexOf(ON_FP_MATCH_RES) > -1 || event.indexOf(ON_FACE_MATCH_RES) > -1) {
             return convertMatchingResultToXML(data);
@@ -115,21 +111,6 @@ module.exports = {
         function convertMatchingResultToXML(rawMessage) {
             var checkQualityResponse = populateCheckQualityResponse(rawMessage);
             var xmlResult = js2xmlparser("CheckQualityResponse", checkQualityResponse, XML_CONVERT_OPTIONS);
-
-            return cleanupXML(xmlResult);
-        }
-        
-        /**
-         * Convert matching result for 10FP to XML.
-         * @param rawMessage
-         * @returns XML matching result.
-         */
-        function convert10FPMatchingResultToXML(rawMessage) {
-            var leftFPCheckQualityResponse = populateCheckQualityResponse(rawMessage.left);
-            var rightFPCheckQualityResponse = populateCheckQualityResponse(rawMessage.right);
-            rawMessage.left = leftFPCheckQualityResponse;
-            rawMessage.right = rightFPCheckQualityResponse;
-            var xmlResult = js2xmlparser("CheckQualityResponse", rawMessage, XML_CONVERT_OPTIONS);
 
             return cleanupXML(xmlResult);
         }
