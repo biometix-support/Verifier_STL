@@ -200,12 +200,12 @@ ui.on('connection', function (uiSocket) {
     uiSocket.on('Compare10FPReq', function (data) {
         if (!isTest) {
             clearTempFolder();
-            saveImageToDisk(data.finger1, function (filename1) {
-                saveImageToDisk(data.finger2, function (filename2) {
+            saveImageToDisk(data.fingerData.finger1, function (filename1) {
+                saveImageToDisk(data.fingerData.finger2, function (filename2) {
                     var finger1 = TEMP_DIR + filename1;
                     var finger2 = TEMP_DIR + filename2;
 
-                    var fingerData = {
+                    var fpData = {
                         finger1: finger1,
                         finger2: finger2
                     };
@@ -217,10 +217,10 @@ ui.on('connection', function (uiSocket) {
                         headers: {
                             "content-type": "application/json",
                         },
-                        body: fingerData
+                        body: fpData
                     }, function (error, response, body) {
                         if (!error && response.statusCode === 200) {
-                            uiSocket.emit('On10FPRes', stlTransformer.transform('On10FPRes', body));
+                            uiSocket.emit('On10FPRes', stlTransformer.transform('On10FPRes', body, data.fingerType));
                         }
                         else {
                             console.log("error: " + error)

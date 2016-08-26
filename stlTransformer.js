@@ -11,7 +11,7 @@ var js2xmlparser = require("js2xmlparser"),
     fs = require('fs');
 
 module.exports = {
-    transform: function (event, data) {
+    transform: function (event, data, fingerType) {
         /**
          * Constant definitions.
          */
@@ -19,6 +19,7 @@ module.exports = {
         const ON_PHOTO_TAKEN = "OnPhotoTaken";
         const ON_DOCUMENT_SCANNED = "OnNewDocumentScanned";
         const ON_FP_MATCH_RES = 'OnFPRes';
+        const ON_FP_10_MATCH_RES = 'On10FPRes';
         const ON_FACE_MATCH_RES = 'OnFaceRes';
 
         /**
@@ -38,6 +39,9 @@ module.exports = {
         if (event.indexOf(ON_FINGERPRINT_SCANNED) > -1 || event.indexOf(ON_PHOTO_TAKEN) > -1
             || event.indexOf(ON_DOCUMENT_SCANNED) > -1) {
             return convertAcquisitionResultToXML(rawMessage);
+        }
+        else if (event.indexOf(ON_FP_10_MATCH_RES) > -1) {
+            return convertMatching10FPResultToXML(data, fingerType);
         }
         else if (event.indexOf(ON_FP_MATCH_RES) > -1 || event.indexOf(ON_FACE_MATCH_RES) > -1) {
             return convertMatchingResultToXML(data);
@@ -102,6 +106,34 @@ module.exports = {
 
             return checkQualityResponse;
         }
+        
+        /**
+         * Populate JSON object with Matching result for 10FP.
+         * @param rawMessage
+         * @returns {{ResponseStatus: {Return: number, Message: string}, QualityInfo: {QualityScore: number}}}
+         */
+        function populateCheckQualityResponse10FP(rawMessage, fingerType) {
+            var checkQualityResponse = {
+                ResponseStatus: {
+                    Return: -1,
+                    Message: ''
+                },
+                QualityInfo: {
+                    QualityScore: -1
+                },
+                FingerType: fingerType
+            };
+
+            if (rawMessage.success) {
+                checkQualityResponse.ResponseStatus.Return = 0;
+                checkQualityResponse.QualityInfo.QualityScore = rawMessage.data.score;
+            } else {
+                checkQualityResponse.ResponseStatus.Return = rawMessage.errorMsg.code;
+                checkQualityResponse.ResponseStatus.Message = rawMessage.errorMsg.msg;
+            }
+
+            return checkQualityResponse;
+        }
 
         /**
          * Convert matching result to XML.
@@ -110,6 +142,18 @@ module.exports = {
          */
         function convertMatchingResultToXML(rawMessage) {
             var checkQualityResponse = populateCheckQualityResponse(rawMessage);
+            var xmlResult = js2xmlparser("CheckQualityResponse", checkQualityResponse, XML_CONVERT_OPTIONS);
+
+            return cleanupXML(xmlResult);
+        }
+        
+        /**
+         * Convert matching result to XML.
+         * @param rawMessage
+         * @returns XML matching result.
+         */
+        function convertMatching10FPResultToXML(rawMessage, fingerType) {
+            var checkQualityResponse = populateCheckQualityResponse10FP(rawMessage, fingerType);
             var xmlResult = js2xmlparser("CheckQualityResponse", checkQualityResponse, XML_CONVERT_OPTIONS);
 
             return cleanupXML(xmlResult);
