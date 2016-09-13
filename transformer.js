@@ -52,13 +52,37 @@ function deleteFolderRecursive(path) {
     if (fs.existsSync(path)) {
         fs.readdirSync(path).forEach(function (file, index) {
             var curPath = path + "/" + file;
-            if (fs.lstatSync(curPath).isDirectory()) { // recurse
-                deleteFolderRecursive(curPath);
-            } else { // delete file
-                fs.unlinkSync(curPath);
+            try {
+                if (fs.lstatSync(curPath).isDirectory()) { // recurse
+                    deleteFolderRecursive(curPath);
+                } else { // delete file
+                    try {
+                        fs.unlinkSync(curPath);
+                    }
+                    catch (err) {
+                        console.error('Error in trying to delete file. Details:', err);
+                        console.log('Trying to delete file again in 5 seconds...');
+                        setTimeout(function() {
+                            if (fs.existsSync(curPath))
+                                fs.unlinkSync(curPath)
+                        }, 5000);
+                    }
+                }
+            }
+            catch (err) {
+                console.error('Error in trying to lstatsync path: ' + curPath + '. Details:', err);
             }
         });
-        fs.rmdirSync(path);
+        try {
+            fs.rmdirSync(path);
+        }
+        catch (err) {
+            console.error('Error in trying to rmdir. Details:', err);
+            console.log('Tryingto delete directory again in 5 seconds...');
+            setTimeout(function() {
+                deleteFolderRecursive(path);
+            }, 5000);
+        }
     }
 }
 
