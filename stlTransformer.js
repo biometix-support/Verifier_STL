@@ -11,7 +11,7 @@ var js2xmlparser = require("js2xmlparser"),
     fs = require('fs');
 
 module.exports = {
-    transform: function (event, data, fingerType) {
+    transform: function (event, data, type) {
         /**
          * Constant definitions.
          */
@@ -40,10 +40,10 @@ module.exports = {
             || event.indexOf(ON_DOCUMENT_SCANNED) > -1) {
             return convertAcquisitionResultToXML(rawMessage);
         }
-        else if (event.indexOf(ON_FP_10_MATCH_RES) > -1) {
-            return convertMatching10FPResultToXML(data, fingerType);
+        else if (event.indexOf(ON_FP_10_MATCH_RES) > -1 || event.indexOf(ON_FACE_MATCH_RES) > -1) {
+            return convertMatchingResultWithTypeToXML(data, type);
         }
-        else if (event.indexOf(ON_FP_MATCH_RES) > -1 || event.indexOf(ON_FACE_MATCH_RES) > -1) {
+        else if (event.indexOf(ON_FP_MATCH_RES) > -1) {
             return convertMatchingResultToXML(data);
         }
 
@@ -112,7 +112,7 @@ module.exports = {
          * @param rawMessage
          * @returns {{ResponseStatus: {Return: number, Message: string}, QualityInfo: {QualityScore: number}}}
          */
-        function populateCheckQualityResponse10FP(rawMessage, fingerType) {
+        function populateCheckQualityResponseWithType(rawMessage, type) {
             var checkQualityResponse = {
                 ResponseStatus: {
                     Return: -1,
@@ -121,7 +121,7 @@ module.exports = {
                 QualityInfo: {
                     QualityScore: -1
                 },
-                FingerType: fingerType
+                Type: type
             };
 
             if (rawMessage.success) {
@@ -152,8 +152,8 @@ module.exports = {
          * @param rawMessage
          * @returns XML matching result.
          */
-        function convertMatching10FPResultToXML(rawMessage, fingerType) {
-            var checkQualityResponse = populateCheckQualityResponse10FP(rawMessage, fingerType);
+        function convertMatchingResultWithTypeToXML(rawMessage, type) {
+            var checkQualityResponse = populateCheckQualityResponseWithType(rawMessage, type);
             var xmlResult = js2xmlparser("CheckQualityResponse", checkQualityResponse, XML_CONVERT_OPTIONS);
 
             return cleanupXML(xmlResult);

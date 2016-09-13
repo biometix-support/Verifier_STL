@@ -151,7 +151,7 @@ ui.on('connection', function (uiSocket) {
                         body: faceData
                     }, function (error, response, body) {
                         if (!error && response.statusCode === 200) {
-                            uiSocket.emit('OnFaceRes', stlTransformer.transform('OnFaceRes', body));
+                            uiSocket.emit('OnFaceRes', stlTransformer.transform('OnFaceRes', body, data.type));
                         }
                         else {
                             console.log("error: " + error)
@@ -220,7 +220,7 @@ ui.on('connection', function (uiSocket) {
                         body: fpData
                     }, function (error, response, body) {
                         if (!error && response.statusCode === 200) {
-                            uiSocket.emit('On10FPRes', stlTransformer.transform('On10FPRes', body, data.fingerType));
+                            uiSocket.emit('On10FPRes', stlTransformer.transform('On10FPRes', body, data.type));
                         }
                         else {
                             console.log("error: " + error)
