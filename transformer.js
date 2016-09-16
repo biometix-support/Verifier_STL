@@ -29,24 +29,52 @@ function clearTempFolder() {
     else {
         // delete the temp folder with temp files and crate a empty one
         deleteFolderRecursive(TEMP_DIR);
-        fs.mkdirSync(TEMP_DIR);
+        // fs.mkdirSync(TEMP_DIR);
     }
 }
 clearTempFolder();
 
 function saveImageToDisk(base64File, callback) {
-    var base64Data = base64File.replace(/^data:image\/png;base64,/, "");
-    base64Data = base64File.replace(/^data:image\/jpeg;base64,/, "");
+    var fileExt = '';
+    var base64Data = '';
+    if (/^data:image\/png;base64,/.test(base64File)) {
+        fileExt = '.png';
+        base64Data = base64File.replace(/^data:image\/png;base64,/, "");
+    }
+    else if (/^data:image\/jpeg;base64,/.test(base64File)) {
+        fileExt = '.jpeg';
+        base64Data = base64File.replace(/^data:image\/jpeg;base64,/, "");
+    }
+    else if (/^data:image\/bmp;base64,/.test(base64File)) {
+        fileExt = '.bmp';
+        base64Data = base64File.replace(/^data:image\/bmp;base64,/, "");
+    }
 
-    var fileName = generateId(10) + '.jpeg';
+    var fileName = generateId(10) + fileExt;
 
-    fs.writeFile(TEMP_DIR + fileName, base64Data, 'base64', function (err) {
-        if (err)
-            console.log(err);
+    if (!fs.existsSync(TEMP_DIR))
+        fs.mkdirSync(TEMP_DIR);
+    
+    fs.open(TEMP_DIR + fileName, 'w', function(err, fd) {
+        if (err) {
+            console.log('Error in trying to create file. Details: ', err);
+        }
         else {
-            callback(fileName);
+            fs.write(fd, base64Data, 0, 'base64', function(err) {
+                if (err) 
+                    console.log('error writing file: ' + err);
+                fs.close(fd, function() {
+                    callback(fileName);
+                });
+            });
         }
     });
+    /*fs.writeFile(TEMP_DIR + fileName, base64Data, 'base64', function (err) {
+        if (err)
+            console.log(err);
+        callback(fileName);
+    });
+    */
 }
 function deleteFolderRecursive(path) {
     if (fs.existsSync(path)) {
@@ -154,7 +182,7 @@ ui.on('connection', function (uiSocket) {
      */
     uiSocket.on('CompFaceReq', function (data) {
         if (!isTest) {
-            clearTempFolder();
+            // clearTempFolder();
             saveImageToDisk(data.face1, function (filename1) {
                 saveImageToDisk(data.face2, function (filename2) {
                     var face1 = TEMP_DIR + filename1;
@@ -175,6 +203,8 @@ ui.on('connection', function (uiSocket) {
                         body: faceData
                     }, function (error, response, body) {
                         if (!error && response.statusCode === 200) {
+                            fs.unlinkSync(face1);
+                            fs.unlinkSync(face2);
                             uiSocket.emit('OnFaceRes', stlTransformer.transform('OnFaceRes', body, data.type));
                         }
                         else {
@@ -189,7 +219,7 @@ ui.on('connection', function (uiSocket) {
 
     uiSocket.on('ComFinReq', function (data) {
         if (!isTest) {
-            clearTempFolder();
+            // clearTempFolder();
             saveImageToDisk(data.finger1, function (filename1) {
                 saveImageToDisk(data.finger2, function (filename2) {
                     var finger1 = TEMP_DIR + filename1;
@@ -210,6 +240,8 @@ ui.on('connection', function (uiSocket) {
                         body: fingerData
                     }, function (error, response, body) {
                         if (!error && response.statusCode === 200) {
+                            fs.unlinkSync(finger1);
+                            fs.unlinkSync(finger2);
                             uiSocket.emit('OnFPRes', stlTransformer.transform('OnFPRes', body));
                         }
                         else {
@@ -223,7 +255,7 @@ ui.on('connection', function (uiSocket) {
     
     uiSocket.on('Compare10FPReq', function (data) {
         if (!isTest) {
-            clearTempFolder();
+            //clearTempFolder();
             saveImageToDisk(data.fingerData.finger1, function (filename1) {
                 saveImageToDisk(data.fingerData.finger2, function (filename2) {
                     var finger1 = TEMP_DIR + filename1;
@@ -244,6 +276,8 @@ ui.on('connection', function (uiSocket) {
                         body: fpData
                     }, function (error, response, body) {
                         if (!error && response.statusCode === 200) {
+                            fs.unlinkSync(finger1);
+                            fs.unlinkSync(finger2);
                             uiSocket.emit('On10FPRes', stlTransformer.transform('On10FPRes', body, data.type));
                         }
                         else {
